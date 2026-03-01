@@ -15,7 +15,13 @@
         "*://www.acmicpc.net/submit/*",
         "*://swexpertacademy.com/*"
       ],
-      "js": ["content.js"]
+      "js": [
+        "content/constants.js",
+        "content/ui.js",
+        "content/parser.js",
+        "content/transform.js",
+        "content/handler.js"
+      ]
     }
   ]
 }
