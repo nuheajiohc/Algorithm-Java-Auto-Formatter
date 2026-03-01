@@ -52,11 +52,11 @@ document.addEventListener('paste', function(e) {
             targetClassName = 'Solution';
         }
 
-        // package 선언부 제거 (빈 줄까지 깔끔하게 날리도록 정규식 조금 수정)
-        modifiedText = pastedText.replace(/package\s+[\w.]+;\s*\n*/g, '');
+        // package 선언부 제거 (한글, 영문, 숫자, _, $, 마침표가 포함된 패키지명 완벽 대응)
+        modifiedText = pastedText.replace(/package\s+[a-zA-Z0-9_$가-힣.]+;\s*\n*/g, '');
         
-        // 클래스명을 Main 또는 Solution으로 변경
-        modifiedText = modifiedText.replace(/public\s+class\s+\w+/g, `public class ${targetClassName}`);
+        // 클래스명을 Main 또는 Solution으로 변경 (실제 자바 클래스명 규칙: 한글, 영문, _, $, 숫자 포함)
+        modifiedText = modifiedText.replace(/public\s+class\s+[a-zA-Z_$가-힣][a-zA-Z0-9_$가-힣]*/g, `public class ${targetClassName}`);
 
         // 변환된 코드만 에디터에 삽입
         document.execCommand('insertText', false, modifiedText);
