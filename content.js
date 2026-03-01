@@ -30,36 +30,143 @@ function showToast(message) {
     }, 1500);
 }
 
-// ★ [신규 핵심 함수] main 메서드를 감싸는 진짜 본체 클래스를 찾아내는 알고리즘
-function renameMainClass(code, replacementName) {
-    // 1. main 메서드의 위치를 찾음
-    let mainIdx = code.indexOf('static void main');
-    if (mainIdx === -1) return code; // main이 없으면 원본 그대로 반환
+function maskJavaCommentsAndStrings(code) {
+    let out = '';
+    let state = 'normal';
 
-    // 2. main 메서드 바로 앞까지의 코드를 자름
-    let beforeMain = code.substring(0, mainIdx);
+    for (let i = 0; i < code.length; i++) {
+        const ch = code[i];
+        const next = code[i + 1];
+
+        if (state === 'normal') {
+            if (ch === '/' && next === '/') {
+                out += '  ';
+                i++;
+                state = 'lineComment';
+                continue;
+            }
+            if (ch === '/' && next === '*') {
+                out += '  ';
+                i++;
+                state = 'blockComment';
+                continue;
+            }
+            if (ch === '"') {
+                out += ' ';
+                state = 'string';
+                continue;
+            }
+            if (ch === "'") {
+                out += ' ';
+                state = 'char';
+                continue;
+            }
+            out += ch;
+            continue;
+        }
+
+        if (state === 'lineComment') {
+            if (ch === '\n') {
+                out += '\n';
+                state = 'normal';
+            } else {
+                out += ' ';
+            }
+            continue;
+        }
+
+        if (state === 'blockComment') {
+            if (ch === '*' && next === '/') {
+                out += '  ';
+                i++;
+                state = 'normal';
+            } else {
+                out += ch === '\n' ? '\n' : ' ';
+            }
+            continue;
+        }
+
+        if (state === 'string') {
+            if (ch === '\\' && i + 1 < code.length) {
+                out += '  ';
+                i++;
+                continue;
+            }
+            if (ch === '"') {
+                out += ' ';
+                state = 'normal';
+            } else {
+                out += ch === '\n' ? '\n' : ' ';
+            }
+            continue;
+        }
+
+        if (state === 'char') {
+            if (ch === '\\' && i + 1 < code.length) {
+                out += '  ';
+                i++;
+                continue;
+            }
+            if (ch === "'") {
+                out += ' ';
+                state = 'normal';
+            } else {
+                out += ch === '\n' ? '\n' : ' ';
+            }
+        }
+    }
+
+    return out;
+}
+
+function replaceLastClassName(source, maskedSource, replacementClassName) {
+    const classNameRegex = /\bclass\s+([a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*)\b/g;
+    let lastMatch = null;
+    let match;
+
+    while ((match = classNameRegex.exec(maskedSource)) !== null) {
+        lastMatch = match;
+    }
+
+    if (!lastMatch) return source;
+
+    const originalDecl = lastMatch[0];
+    const originalName = lastMatch[1];
+    const nameStart = lastMatch.index + originalDecl.length - originalName.length;
+    const nameEnd = nameStart + originalName.length;
+
+    return source.substring(0, nameStart) + replacementClassName + source.substring(nameEnd);
+}
+
+// main 메서드를 감싸는 실제 클래스의 "이름 토큰"만 안전하게 변경
+function renameMainClass(code, replacementName) {
+    const masked = maskJavaCommentsAndStrings(code);
+    const replacementClassName = replacementName.trim().split(/\s+/).pop();
+
+    if (!replacementClassName) return code;
+
+    // 주석/문자열을 제외한 실제 main 메서드 위치를 찾음
+    const mainIdx = masked.indexOf('static void main');
+    if (mainIdx === -1) return code;
+
+    const beforeMainMasked = masked.substring(0, mainIdx);
     let depth = 0;
 
-    // 3. 뒤에서부터 거꾸로 읽으면서 중괄호 {} 짝을 맞춤 (스코프 역추적)
-    for (let i = beforeMain.length - 1; i >= 0; i--) {
-        if (beforeMain[i] === '}') depth++;
-        if (beforeMain[i] === '{') depth--;
+    // main을 감싸는 블록의 여는 중괄호를 역추적
+    for (let i = beforeMainMasked.length - 1; i >= 0; i--) {
+        if (beforeMainMasked[i] === '}') depth++;
+        if (beforeMainMasked[i] === '{') depth--;
 
-        // depth가 -1이 되는 순간이 바로 main을 감싸는 클래스의 여는 괄호 '{' 위치!
         if (depth === -1) {
-            let header = beforeMain.substring(0, i);
-            
-            // 괄호 바로 앞부분에 있는 클래스 선언부만 정규식으로 찾아서 콕 집어 교체
-            // (정규식 끝에 $를 써서 다른 내부 클래스를 무시하고 딱 해당 클래스만 잡음)
-            let replacedHeader = header.replace(/(public\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*\s*$/, replacementName + " ");
-            
-            // 교체된 헤더 + 괄호부터 끝까지의 원본 코드 결합
+            const header = code.substring(0, i);
+            const headerMasked = masked.substring(0, i);
+            const replacedHeader = replaceLastClassName(header, headerMasked, replacementClassName);
             return replacedHeader + code.substring(i);
         }
     }
-    
-    // 만약 구조가 특이해서 못 찾으면 예비책으로 첫 번째 클래스를 바꿈
-    return code.replace(/(public\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/, replacementName);
+
+    // 예비책: 주석/문자열 제외 상태에서 마지막 class 이름 교체
+    return replaceLastClassName(code, masked, replacementClassName);
 }
 
 function isEditorTarget(target) {
