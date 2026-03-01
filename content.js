@@ -138,6 +138,13 @@ function replaceLastClassName(source, maskedSource, replacementClassName) {
     return source.substring(0, nameStart) + replacementClassName + source.substring(nameEnd);
 }
 
+function findMainMethodIndex(maskedCode) {
+    // public/final/static/strictfp 등 수식어 조합 + 개행을 허용한 main 선언 탐지
+    const mainMethodRegex = /\b(?:public|protected|private|final|synchronized|native|strictfp|\s)*\bstatic\b(?:\s+\b(?:final|synchronized|native|strictfp)\b)*\s+void\s+main\s*\(/m;
+    const match = maskedCode.match(mainMethodRegex);
+    return match ? match.index : -1;
+}
+
 // main 메서드를 감싸는 실제 클래스의 "이름 토큰"만 안전하게 변경
 function renameMainClass(code, replacementName) {
     const masked = maskJavaCommentsAndStrings(code);
@@ -146,7 +153,7 @@ function renameMainClass(code, replacementName) {
     if (!replacementClassName) return code;
 
     // 주석/문자열을 제외한 실제 main 메서드 위치를 찾음
-    const mainIdx = masked.indexOf('static void main');
+    const mainIdx = findMainMethodIndex(masked);
     if (mainIdx === -1) return code;
 
     const beforeMainMasked = masked.substring(0, mainIdx);
@@ -181,7 +188,7 @@ function looksLikeJavaCode(text) {
 
     const hasPackage = /^\s*package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+\s*;/m.test(text);
     const hasClassDecl = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/.test(text);
-    const hasMainMethod = /\b(?:public\s+)?static\s+void\s+main\s*\(/.test(text);
+    const hasMainMethod = /\b(?:public|protected|private|final|synchronized|native|strictfp|\s)*\bstatic\b(?:\s+\b(?:final|synchronized|native|strictfp)\b)*\s+void\s+main\s*\(/m.test(text);
     const hasJavaImport = /^\s*import\s+java\./m.test(text);
     const hasJavaSignal = /\bSystem\.out\.|Scanner\s*<|Scanner\s+|BufferedReader\s+|StringTokenizer\s+/.test(text);
 
