@@ -51,7 +51,7 @@ function renameMainClass(code, replacementName) {
             
             // 괄호 바로 앞부분에 있는 클래스 선언부만 정규식으로 찾아서 콕 집어 교체
             // (정규식 끝에 $를 써서 다른 내부 클래스를 무시하고 딱 해당 클래스만 잡음)
-            let replacedHeader = header.replace(/(public\s+)?class\s+[a-zA-Z_$가-힣][a-zA-Z0-9_$가-힣]*\s*$/, replacementName + " ");
+            let replacedHeader = header.replace(/(public\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*\s*$/, replacementName + " ");
             
             // 교체된 헤더 + 괄호부터 끝까지의 원본 코드 결합
             return replacedHeader + code.substring(i);
@@ -59,7 +59,7 @@ function renameMainClass(code, replacementName) {
     }
     
     // 만약 구조가 특이해서 못 찾으면 예비책으로 첫 번째 클래스를 바꿈
-    return code.replace(/(public\s+)?class\s+[a-zA-Z_$가-힣][a-zA-Z0-9_$가-힣]*/, replacementName);
+    return code.replace(/(public\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/, replacementName);
 }
 
 function isEditorTarget(target) {
@@ -73,7 +73,7 @@ function looksLikeJavaCode(text) {
     if (!text || typeof text !== 'string') return false;
 
     const hasPackage = /^\s*package\s+[a-zA-Z0-9_$가-힣.]+\s*;/m.test(text);
-    const hasClassDecl = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣][a-zA-Z0-9_$가-힣]*/.test(text);
+    const hasClassDecl = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/.test(text);
     const hasMainMethod = /\b(?:public\s+)?static\s+void\s+main\s*\(/.test(text);
     const hasJavaImport = /^\s*import\s+java\./m.test(text);
     const hasJavaSignal = /\bSystem\.out\.|Scanner\s*<|Scanner\s+|BufferedReader\s+|StringTokenizer\s+/.test(text);
