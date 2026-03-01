@@ -72,7 +72,7 @@ function isEditorTarget(target) {
 function looksLikeJavaCode(text) {
     if (!text || typeof text !== 'string') return false;
 
-    const hasPackage = /^\s*package\s+[a-zA-Z0-9_$가-힣.]+\s*;/m.test(text);
+    const hasPackage = /^\s*package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+\s*;/m.test(text);
     const hasClassDecl = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/.test(text);
     const hasMainMethod = /\b(?:public\s+)?static\s+void\s+main\s*\(/.test(text);
     const hasJavaImport = /^\s*import\s+java\./m.test(text);
@@ -102,7 +102,7 @@ document.addEventListener('paste', function(e) {
         }
 
         // 1. 패키지 날리기 (한글, 특수문자 완벽 대응)
-        modifiedText = pastedText.replace(/package\s+[a-zA-Z0-9_$가-힣.]+;\s*\n*/g, '');
+        modifiedText = pastedText.replace(/package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+;\s*\n*/g, '');
         
         // 2. ★ 대망의 main 감싸는 본체 클래스 이름 바꾸기 함수 실행!
         modifiedText = renameMainClass(modifiedText, replacementClassDecl);
