@@ -4,21 +4,23 @@ function showToast(message) {
     toast.textContent = message;
     
     toast.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%); 
-        background-color: rgba(0, 0, 0, 0.3); 
-        color: white;
-        padding: 16px 32px;
-        border-radius: 30px; 
-        z-index: 99999;
-        font-size: 16px;
-        font-weight: bold;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        backdrop-filter: blur(4px); 
-        pointer-events: none; 
-        transition: opacity 0.5s ease-in-out;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        color: white !important;
+        padding: 16px 32px !important;
+        border-radius: 30px !important; /* 여기서 둥근 모서리 강제 적용! */
+        z-index: 999999 !important; /* z-index도 더 높임 */
+        font-size: 16px !important;
+        font-weight: bold !important;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+        backdrop-filter: blur(4px) !important;
+        pointer-events: none !important;
+        transition: opacity 0.5s ease-in-out !important;
+        border: none !important; /* 혹시 모를 사이트 기본 테두리 방어 */
+        margin: 0 !important;
     `;
     document.body.appendChild(toast);
 
