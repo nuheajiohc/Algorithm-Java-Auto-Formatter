@@ -62,6 +62,27 @@ function renameMainClass(code, replacementName) {
     return code.replace(/(public\s+)?class\s+[a-zA-Z_$가-힣][a-zA-Z0-9_$가-힣]*/, replacementName);
 }
 
+function isEditorTarget(target) {
+    if (!target || !(target instanceof Element)) return false;
+
+    const editor = target.closest('textarea, [contenteditable="true"], .CodeMirror, .cm-editor, .monaco-editor, [role="textbox"]');
+    return Boolean(editor);
+}
+
+function looksLikeJavaCode(text) {
+    if (!text || typeof text !== 'string') return false;
+
+    const hasPackage = /^\s*package\s+[a-zA-Z0-9_$가-힣.]+\s*;/m.test(text);
+    const hasClassDecl = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣][a-zA-Z0-9_$가-힣]*/.test(text);
+    const hasMainMethod = /\b(?:public\s+)?static\s+void\s+main\s*\(/.test(text);
+    const hasJavaImport = /^\s*import\s+java\./m.test(text);
+    const hasJavaSignal = /\bSystem\.out\.|Scanner\s*<|Scanner\s+|BufferedReader\s+|StringTokenizer\s+/.test(text);
+
+    if (hasPackage) return true;
+    if (hasClassDecl && (hasMainMethod || hasJavaImport || hasJavaSignal)) return true;
+    return false;
+}
+
 // 복붙 이벤트 가로채기
 document.addEventListener('paste', function(e) {
     let clipboardData = e.clipboardData || window.clipboardData;
@@ -70,13 +91,8 @@ document.addEventListener('paste', function(e) {
     let pastedText = clipboardData.getData('Text');
     let modifiedText = pastedText; 
 
-    // 자바 코드인지 확인
-    if (pastedText.includes('class ') || pastedText.includes('package ')) {
-        
-        e.preventDefault(); 
-        e.stopPropagation(); 
-        e.stopImmediatePropagation();
-
+    // 자바 코드 + 실제 코드 입력 영역인지 확인
+    if (isEditorTarget(e.target) && looksLikeJavaCode(pastedText)) {
         const currentHost = window.location.hostname;
         
         // 사이트별 맞춤 클래스 선언 세팅
@@ -90,6 +106,13 @@ document.addEventListener('paste', function(e) {
         
         // 2. ★ 대망의 main 감싸는 본체 클래스 이름 바꾸기 함수 실행!
         modifiedText = renameMainClass(modifiedText, replacementClassDecl);
+
+        // 실제 변경이 없으면 기본 붙여넣기를 그대로 사용 (알림도 띄우지 않음)
+        if (modifiedText === pastedText) return;
+
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        e.stopImmediatePropagation();
 
         // 에디터에 삽입
         document.execCommand('insertText', false, modifiedText);
