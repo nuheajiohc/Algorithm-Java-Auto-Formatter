@@ -7,7 +7,7 @@ const PACKAGE_DETECT_REGEX = /^\s*package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+
 const CLASS_DETECT_REGEX = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/;
 const JAVA_IMPORT_REGEX = /^\s*import\s+java\./m;
 const JAVA_SIGNAL_REGEX = /\bSystem\.out\.|Scanner\s*<|Scanner\s+|BufferedReader\s+|StringTokenizer\s+/;
-const CLASS_NAME_REGEX = /\bclass\s+([a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*)\b/g;
+const CLASS_NAME_REGEX = /class\s+([a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*)/g;
 
 function showToast(message) {
     const toast = document.createElement('div');
@@ -139,6 +139,7 @@ function replaceLastClassName(source, maskedSource, replacementClassName) {
     let lastMatch = null;
     let match;
 
+    CLASS_NAME_REGEX.lastIndex = 0;
     while ((match = CLASS_NAME_REGEX.exec(maskedSource)) !== null) {
         lastMatch = match;
     }
