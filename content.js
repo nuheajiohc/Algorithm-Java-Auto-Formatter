@@ -1,8 +1,18 @@
-// 알림창(Toast) 띄우는 함수
+const EDITOR_SELECTOR = 'textarea, [contenteditable="true"], .CodeMirror, .cm-editor, .monaco-editor, [role="textbox"]';
+const SWEA_HOST_KEYWORD = 'swexpertacademy.com';
+
+const MAIN_METHOD_REGEX = /\b(?:public|protected|private|final|synchronized|native|strictfp|\s)*\bstatic\b(?:\s+\b(?:final|synchronized|native|strictfp)\b)*\s+void\s+main\s*\(/m;
+const PACKAGE_REGEX = /package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+;\s*\n*/g;
+const PACKAGE_DETECT_REGEX = /^\s*package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+\s*;/m;
+const CLASS_DETECT_REGEX = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/;
+const JAVA_IMPORT_REGEX = /^\s*import\s+java\./m;
+const JAVA_SIGNAL_REGEX = /\bSystem\.out\.|Scanner\s*<|Scanner\s+|BufferedReader\s+|StringTokenizer\s+/;
+const CLASS_NAME_REGEX = /\bclass\s+([a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*)\b/g;
+
 function showToast(message) {
     const toast = document.createElement('div');
     toast.textContent = message;
-    
+
     toast.style.cssText = `
         position: fixed !important;
         top: 50% !important;
@@ -11,17 +21,18 @@ function showToast(message) {
         background-color: rgba(0, 0, 0, 0.3) !important;
         color: white !important;
         padding: 16px 32px !important;
-        border-radius: 30px !important; /* 여기서 둥근 모서리 강제 적용! */
-        z-index: 999999 !important; /* z-index도 더 높임 */
+        border-radius: 30px !important;
+        z-index: 999999 !important;
         font-size: 16px !important;
         font-weight: bold !important;
         box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
         backdrop-filter: blur(4px) !important;
         pointer-events: none !important;
         transition: opacity 0.5s ease-in-out !important;
-        border: none !important; /* 혹시 모를 사이트 기본 테두리 방어 */
+        border: none !important;
         margin: 0 !important;
     `;
+
     document.body.appendChild(toast);
 
     setTimeout(() => {
@@ -119,12 +130,16 @@ function maskJavaCommentsAndStrings(code) {
     return out;
 }
 
+function findMainMethodIndex(maskedCode) {
+    const match = maskedCode.match(MAIN_METHOD_REGEX);
+    return match ? match.index : -1;
+}
+
 function replaceLastClassName(source, maskedSource, replacementClassName) {
-    const classNameRegex = /\bclass\s+([a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*)\b/g;
     let lastMatch = null;
     let match;
 
-    while ((match = classNameRegex.exec(maskedSource)) !== null) {
+    while ((match = CLASS_NAME_REGEX.exec(maskedSource)) !== null) {
         lastMatch = match;
     }
 
@@ -138,28 +153,17 @@ function replaceLastClassName(source, maskedSource, replacementClassName) {
     return source.substring(0, nameStart) + replacementClassName + source.substring(nameEnd);
 }
 
-function findMainMethodIndex(maskedCode) {
-    // public/final/static/strictfp 등 수식어 조합 + 개행을 허용한 main 선언 탐지
-    const mainMethodRegex = /\b(?:public|protected|private|final|synchronized|native|strictfp|\s)*\bstatic\b(?:\s+\b(?:final|synchronized|native|strictfp)\b)*\s+void\s+main\s*\(/m;
-    const match = maskedCode.match(mainMethodRegex);
-    return match ? match.index : -1;
-}
-
-// main 메서드를 감싸는 실제 클래스의 "이름 토큰"만 안전하게 변경
-function renameMainClass(code, replacementName) {
+function renameMainClass(code, replacementDecl) {
     const masked = maskJavaCommentsAndStrings(code);
-    const replacementClassName = replacementName.trim().split(/\s+/).pop();
-
+    const replacementClassName = replacementDecl.trim().split(/\s+/).pop();
     if (!replacementClassName) return code;
 
-    // 주석/문자열을 제외한 실제 main 메서드 위치를 찾음
     const mainIdx = findMainMethodIndex(masked);
     if (mainIdx === -1) return code;
 
     const beforeMainMasked = masked.substring(0, mainIdx);
     let depth = 0;
 
-    // main을 감싸는 블록의 여는 중괄호를 역추적
     for (let i = beforeMainMasked.length - 1; i >= 0; i--) {
         if (beforeMainMasked[i] === '}') depth++;
         if (beforeMainMasked[i] === '{') depth--;
@@ -172,74 +176,100 @@ function renameMainClass(code, replacementName) {
         }
     }
 
-    // 예비책: 주석/문자열 제외 상태에서 마지막 class 이름 교체
     return replaceLastClassName(code, masked, replacementClassName);
 }
 
 function isEditorTarget(target) {
     if (!target || !(target instanceof Element)) return false;
-
-    const editor = target.closest('textarea, [contenteditable="true"], .CodeMirror, .cm-editor, .monaco-editor, [role="textbox"]');
-    return Boolean(editor);
+    return Boolean(target.closest(EDITOR_SELECTOR));
 }
 
 function looksLikeJavaCode(text) {
     if (!text || typeof text !== 'string') return false;
 
-    const hasPackage = /^\s*package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+\s*;/m.test(text);
-    const hasClassDecl = /\b(?:public\s+)?(?:final\s+|abstract\s+)?class\s+[a-zA-Z_$가-힣ㄱ-ㅎㅏ-ㅣ][a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ]*/.test(text);
-    const hasMainMethod = /\b(?:public|protected|private|final|synchronized|native|strictfp|\s)*\bstatic\b(?:\s+\b(?:final|synchronized|native|strictfp)\b)*\s+void\s+main\s*\(/m.test(text);
-    const hasJavaImport = /^\s*import\s+java\./m.test(text);
-    const hasJavaSignal = /\bSystem\.out\.|Scanner\s*<|Scanner\s+|BufferedReader\s+|StringTokenizer\s+/.test(text);
+    const hasPackage = PACKAGE_DETECT_REGEX.test(text);
+    const hasClassDecl = CLASS_DETECT_REGEX.test(text);
+    const hasMainMethod = MAIN_METHOD_REGEX.test(text);
+    const hasJavaImport = JAVA_IMPORT_REGEX.test(text);
+    const hasJavaSignal = JAVA_SIGNAL_REGEX.test(text);
 
     if (hasPackage) return true;
     if (hasClassDecl && (hasMainMethod || hasJavaImport || hasJavaSignal)) return true;
     return false;
 }
 
-// 복붙 이벤트 가로채기
-document.addEventListener('paste', function(e) {
-    let clipboardData = e.clipboardData || window.clipboardData;
-    if (!clipboardData) return;
-    
-    let pastedText = clipboardData.getData('Text');
-    let modifiedText = pastedText; 
+function removePackageDeclaration(text) {
+    return text.replace(PACKAGE_REGEX, '');
+}
 
-    // 자바 코드 + 실제 코드 입력 영역인지 확인
-    if (isEditorTarget(e.target) && looksLikeJavaCode(pastedText)) {
-        const currentHost = window.location.hostname;
-        
-        // 사이트별 맞춤 클래스 선언 세팅
-        let replacementClassDecl = 'public class Main'; 
-        if (currentHost.includes('swexpertacademy.com')) {
-            replacementClassDecl = 'class Solution'; 
-        }
+function getReplacementClassDecl(hostname) {
+    return hostname.includes(SWEA_HOST_KEYWORD) ? 'class Solution' : 'public class Main';
+}
 
-        // 1. 패키지 날리기 (한글, 특수문자 완벽 대응)
-        modifiedText = pastedText.replace(/package\s+[a-zA-Z0-9_$가-힣ㄱ-ㅎㅏ-ㅣ.]+;\s*\n*/g, '');
-        
-        // 2. ★ 대망의 main 감싸는 본체 클래스 이름 바꾸기 함수 실행!
-        modifiedText = renameMainClass(modifiedText, replacementClassDecl);
+function insertTextAtTarget(target, text) {
+    if (!target || typeof text !== 'string') return false;
 
-        // 실제 변경이 없으면 기본 붙여넣기를 그대로 사용 (알림도 띄우지 않음)
-        if (modifiedText === pastedText) return;
+    if (target instanceof HTMLTextAreaElement || (target instanceof HTMLInputElement && target.type === 'text')) {
+        const start = target.selectionStart ?? target.value.length;
+        const end = target.selectionEnd ?? target.value.length;
+        target.setRangeText(text, start, end, 'end');
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+    }
 
-        e.preventDefault(); 
-        e.stopPropagation(); 
-        e.stopImmediatePropagation();
+    if (target instanceof Element) {
+        const editable = target.closest('[contenteditable="true"]');
+        if (editable) {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return false;
 
-        // 에디터에 삽입
-        document.execCommand('insertText', false, modifiedText);
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(document.createTextNode(text));
+            range.collapse(false);
 
-        // 알림 띄우기
-        if (typeof chrome !== 'undefined' && chrome?.storage?.local?.get) {
-            chrome.storage.local.get(['useToast'], function(result) {
-                if (result.useToast !== false) {
-                    showToast('✨ 알고리즘 코드 자동 변환 완료!');
-                }
-            });
-        } else {
-            showToast('✨ 알고리즘 코드 자동 변환 완료!');
+            selection.removeAllRanges();
+            selection.addRange(range);
+            editable.dispatchEvent(new Event('input', { bubbles: true }));
+            return true;
         }
     }
-}, true);
+
+    return false;
+}
+
+function handlePaste(e) {
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData) return;
+
+    const pastedText = clipboardData.getData('Text');
+    if (!isEditorTarget(e.target) || !looksLikeJavaCode(pastedText)) return;
+
+    const replacementClassDecl = getReplacementClassDecl(window.location.hostname);
+    let modifiedText = removePackageDeclaration(pastedText);
+    modifiedText = renameMainClass(modifiedText, replacementClassDecl);
+
+    // 변경이 없으면 기본 붙여넣기를 그대로 사용
+    if (modifiedText === pastedText) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    const inserted = insertTextAtTarget(e.target, modifiedText);
+    if (!inserted) {
+        document.execCommand('insertText', false, modifiedText);
+    }
+
+    if (typeof chrome !== 'undefined' && chrome?.storage?.local?.get) {
+        chrome.storage.local.get(['useToast'], function(result) {
+            if (result.useToast !== false) {
+                showToast('✨ 알고리즘 코드 자동 변환 완료!');
+            }
+        });
+    } else {
+        showToast('✨ 알고리즘 코드 자동 변환 완료!');
+    }
+}
+
+document.addEventListener('paste', handlePaste, true);
