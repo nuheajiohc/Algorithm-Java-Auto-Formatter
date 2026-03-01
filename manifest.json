@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Algorithm Java Auto Formatter",
+  "version": "1.0.0",
+  "description": "백준, SWEA에 자바 코드 붙여넣기 시 자동으로 package 제거 및 알맞은 클래스명으로 변환합니다.",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.acmicpc.net/submit/*",
+        "*://swexpertacademy.com/*"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}
