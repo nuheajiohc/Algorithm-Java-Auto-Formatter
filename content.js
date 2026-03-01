@@ -23,11 +23,11 @@ function showToast(message) {
     `;
     document.body.appendChild(toast);
 
-    // 가운데 뜨니까 너무 오래 켜져 있으면 방해될 수 있어서 1.5초(1500ms) 뒤에 사라지게 세팅
+    // 가운데 뜨니까 너무 오래 켜져 있으면 방해될 수 있어서 1초(1000ms) 뒤에 사라지게 세팅
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 500);
-    }, 1500);
+    }, 1000);
 }
 
 // 맨 뒤에 'true'를 붙여서 이벤트를 가장 먼저 가로채게(Capture phase) 만듦
@@ -61,14 +61,15 @@ document.addEventListener('paste', function(e) {
         // 변환된 코드만 에디터에 삽입
         document.execCommand('insertText', false, modifiedText);
 
-        // [추가된 부분 2] 코드가 변환되었다면, 팝업 설정(storage)을 읽고 알림 띄우기!
-        if (pastedText !== modifiedText) {
+        // chrome.storage가 존재하는지 확인하고 실행
+        if (typeof chrome !== 'undefined' && chrome?.storage?.local?.get) {
             chrome.storage.local.get(['useToast'], function(result) {
-                // 사용자가 체크박스를 끄지 않았다면 (기본값 or 켜짐 상태)
                 if (result.useToast !== false) {
                     showToast('✨ 알고리즘 코드 자동 변환 완료!');
                 }
             });
+        } else {
+            showToast('✨ 알고리즘 코드 자동 변환 완료!');
         }
     }
 }, true); // <--- 이 true가 아주 중요한 역할을 해!
