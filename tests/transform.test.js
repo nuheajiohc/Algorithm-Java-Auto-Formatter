@@ -108,3 +108,113 @@ test('SWEA 호스트에서는 클래스명을 Solution으로 변경한다', () =
     expect(output).toMatch(/class Solution/);
     expect(output).not.toMatch(/package demo;/);
 });
+
+test('자바 텍스트 블록 안의 package 텍스트는 제거하지 않는다', () => {
+    const { removePackageDeclaration } = loadRuntime();
+    const input = [
+        'public class Main {',
+        '    String s = """',
+        'package demo.fake;',
+        'hello',
+        '""";',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = removePackageDeclaration(input);
+    expect(output).toBe(input);
+});
+
+test('자바 텍스트 블록 안의 main 시그니처는 클래스명 변경 트리거가 아니다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'public class KeepMe {',
+        '    String s = """',
+        'public static void main(String[] args) {}',
+        '""";',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'www.acmicpc.net');
+    expect(output).toBe(input);
+});
+
+test('CRLF 줄바꿈에서도 package 줄 제거 후 import가 최상단으로 온다', () => {
+    const { removePackageDeclaration } = loadRuntime();
+    const input = 'package demo;\r\n\r\nimport java.io.*;\r\nclass Main {}\r\n';
+    const output = removePackageDeclaration(input);
+
+    expect(output).toBe('import java.io.*;\r\nclass Main {}\r\n');
+});
+
+test('중첩 클래스의 main일 때는 해당 중첩 클래스명만 변경한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'public class Outer {',
+        '    static class Inner {',
+        '        public static void main(String[] args) {}',
+        '    }',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'www.acmicpc.net');
+    expect(output).toMatch(/class Outer/);
+    expect(output).toMatch(/static class Main/);
+    expect(output).not.toMatch(/class Inner/);
+});
+
+test('class 선언과 import java가 있으면 Java 코드로 판단한다', () => {
+    const { looksLikeJavaCode } = loadRuntime();
+    const input = [
+        'import java.util.*;',
+        'class Demo {}',
+        ''
+    ].join('\n');
+
+    expect(looksLikeJavaCode(input)).toBe(true);
+});
+
+test('멀티라인 블록 주석 내부 package 텍스트는 Java 판별 신호로 쓰지 않는다', () => {
+    const { looksLikeJavaCode } = loadRuntime();
+    const input = [
+        '/*',
+        'package fake.demo;',
+        '*/',
+        'plain text only',
+        ''
+    ].join('\n');
+
+    expect(looksLikeJavaCode(input)).toBe(false);
+});
+
+test('제거할 package가 없으면 선행 빈 줄을 임의로 정리하지 않는다', () => {
+    const { removePackageDeclaration } = loadRuntime();
+    const input = '\n\nimport java.util.*;\nclass Main {}\n';
+    const output = removePackageDeclaration(input);
+
+    expect(output).toBe(input);
+});
+
+test('주석에 package와 psvm이 모두 있어도 실제 코드 기준으로만 변환한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        '// package fake.comment;',
+        '// public static void main(String[] args) {}',
+        'package real.demo;',
+        '',
+        'public class RealRun {',
+        '    public static void main(String[] args) {}',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'www.acmicpc.net');
+
+    expect(output).toContain('// package fake.comment;');
+    expect(output).toContain('// public static void main(String[] args) {}');
+    expect(output).not.toMatch(/\bpackage real\.demo;/);
+    expect(output).toMatch(/public class Main/);
+    expect(output).not.toMatch(/public class RealRun/);
+});
