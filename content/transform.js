@@ -6,11 +6,12 @@ function isEditorTarget(target) {
 function looksLikeJavaCode(text) {
     if (!text || typeof text !== 'string') return false;
 
-    const hasPackage = PACKAGE_DETECT_REGEX.test(text);
-    const hasClassDecl = CLASS_DETECT_REGEX.test(text);
-    const hasMainMethod = MAIN_METHOD_REGEX.test(text);
-    const hasJavaImport = JAVA_IMPORT_REGEX.test(text);
-    const hasJavaSignal = JAVA_SIGNAL_REGEX.test(text);
+    const masked = maskJavaCommentsAndStrings(text);
+    const hasPackage = PACKAGE_DETECT_REGEX.test(masked);
+    const hasClassDecl = CLASS_DETECT_REGEX.test(masked);
+    const hasMainMethod = MAIN_METHOD_REGEX.test(masked);
+    const hasJavaImport = JAVA_IMPORT_REGEX.test(masked);
+    const hasJavaSignal = JAVA_SIGNAL_REGEX.test(masked);
 
     if (hasPackage) return true;
     if (hasClassDecl && (hasMainMethod || hasJavaImport || hasJavaSignal)) return true;
@@ -18,7 +19,27 @@ function looksLikeJavaCode(text) {
 }
 
 function removePackageDeclaration(text) {
-    return text.replace(PACKAGE_REGEX, '');
+    const masked = maskJavaCommentsAndStrings(text);
+    const packageRegex = new RegExp(PACKAGE_REGEX.source, PACKAGE_REGEX.flags);
+    const ranges = [];
+    let match;
+
+    while ((match = packageRegex.exec(masked)) !== null) {
+        ranges.push({ start: match.index, end: match.index + match[0].length });
+    }
+
+    if (ranges.length === 0) return text;
+
+    let result = '';
+    let cursor = 0;
+
+    for (const range of ranges) {
+        result += text.substring(cursor, range.start);
+        cursor = range.end;
+    }
+
+    const removed = result + text.substring(cursor);
+    return removed.replace(/^(?:[ \t]*\r?\n)+/, '');
 }
 
 function getReplacementClassDecl(hostname) {
