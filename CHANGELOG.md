@@ -2,7 +2,7 @@
 
 이 프로젝트의 주요 변경 사항은 이 파일에 기록합니다.
 
-## [Unreleased]
+## [Released]
 
 ### Added
 - Jest 테스트 환경 추가 (`package.json`, `package-lock.json`, `jest.config.cjs`)
