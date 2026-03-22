@@ -2,9 +2,10 @@
 
 백준/삼성 SW Expert Academy 제출 페이지에서 Java 코드 붙여넣기 시 자동으로 포맷을 보정해주는 [Chrome 확장프로그램](https://chromewebstore.google.com/detail/algorithm-java-auto-forma/kmgiifgocdmnncighgpjbdbahbkmanjn)입니다.
 
-🚨 버그를 발견하면 재현 방법(입력 코드, 사이트 URL, 기대 결과/실제 결과)과 함께 Issue로 제보해 주세요.
-
 > 본 확장은 온라인 저지 제출 코드(클래스 + `static main`) 형태를 기준으로 동작합니다.
+
+
+**🚨 버그를 발견하면 재현 방법(입력 코드, 사이트 URL, 기대 결과/실제 결과)과 함께 Issue로 제보해 주세요.**
 
 ## 기능
 - `package ...;` 선언 자동 제거
