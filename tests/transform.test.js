@@ -321,6 +321,37 @@ test('www SWEA 호스트에서도 후위 배열 표기 main을 유지한 채 Sol
     expect(output).not.toContain('class Demo');
 });
 
+test('modifier 순서가 static public 이어도 main을 인식한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'public class Demo {',
+        '    static public void main(String[] args) {}',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'www.acmicpc.net');
+
+    expect(output).toContain('public class Main');
+    expect(output).not.toContain('class Demo');
+});
+
+test('final 과 후위 배열 표기(String args[])를 함께 써도 main을 인식한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'public class Demo {',
+        '    public static void main(final String args[]) throws Exception {}',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'swexpertacademy.com');
+
+    expect(output).toContain('class Solution');
+    expect(output).toContain('main(final String args[]) throws Exception');
+    expect(output).not.toContain('class Demo');
+});
+
 test('String 파라미터가 없는 main 시그니처는 Java 판단 기준으로 쓰지 않는다', () => {
     const { looksLikeJavaCode } = loadRuntime();
     const input = [
