@@ -23,8 +23,11 @@
     {
       "matches": [
         "*://www.acmicpc.net/submit/*",
-        "*://swexpertacademy.com/*"
+        "*://swexpertacademy.com/*",
+        "*://www.swexpertacademy.com/*"
       ],
+      "all_frames": true,
+      "match_about_blank": true,
       "js": [
         "content/constants.js",
         "content/ui.js",

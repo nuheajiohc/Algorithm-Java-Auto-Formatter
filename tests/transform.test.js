@@ -109,6 +109,22 @@ test('SWEA 호스트에서는 클래스명을 Solution으로 변경한다', () =
     expect(output).not.toMatch(/package demo;/);
 });
 
+test('www SWEA 호스트에서도 클래스명을 Solution으로 변경한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'package demo;',
+        'public class Demo {',
+        '    public static void main(String[] args) {}',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'www.swexpertacademy.com');
+
+    expect(output).toMatch(/class Solution/);
+    expect(output).not.toMatch(/package demo;/);
+});
+
 test('자바 텍스트 블록 안의 package 텍스트는 제거하지 않는다', () => {
     const { removePackageDeclaration } = loadRuntime();
     const input = [
@@ -244,6 +260,65 @@ test('main varargs(String...) 시그니처도 인식한다', () => {
 
     const output = transformJavaPasteText(input, 'www.acmicpc.net');
     expect(output).toMatch(/public class Main/);
+});
+
+test('main 배열 파라미터 후위 표기(String args[])도 인식한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'public class Demo {',
+        '    public static void main(String args[]) {}',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'swexpertacademy.com');
+    expect(output).toMatch(/class Solution/);
+    expect(output).not.toMatch(/class Demo/);
+});
+
+test('SWEA 제출 형태 코드도 Solution으로 변환한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'package swea;',
+        '',
+        'import java.io.*;',
+        'import java.util.*;',
+        '',
+        'public class Solution {',
+        '    public static void main(String args[]) throws Exception {',
+        '        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));',
+        '        int T = Integer.parseInt(br.readLine());',
+        '        for (int tc = 1; tc <= T; tc++) {',
+        '            System.out.println("#" + tc);',
+        '        }',
+        '    }',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'swexpertacademy.com');
+
+    expect(output).toContain('class Solution');
+    expect(output).not.toContain('package swea;');
+    expect(output).toContain('public static void main(String args[]) throws Exception {');
+});
+
+test('www SWEA 호스트에서도 후위 배열 표기 main을 유지한 채 Solution으로 변환한다', () => {
+    const { transformJavaPasteText } = loadRuntime();
+    const input = [
+        'package example;',
+        'public class Demo {',
+        '    public static void main(String args[]) throws Exception {}',
+        '}',
+        ''
+    ].join('\n');
+
+    const output = transformJavaPasteText(input, 'www.swexpertacademy.com');
+
+    expect(output).toContain('class Solution');
+    expect(output).toContain('main(String args[]) throws Exception');
+    expect(output).not.toContain('package example;');
+    expect(output).not.toContain('class Demo');
 });
 
 test('String 파라미터가 없는 main 시그니처는 Java 판단 기준으로 쓰지 않는다', () => {
